@@ -1,13 +1,11 @@
 #include <Arduino.h>
-#include "CMMC_Blink.hpp"
+#include <CMMC_Manager.h>
 #include "CMMC_Interval.hpp"
 #include <ESP8266WiFi.h>
 #include <ArduinoJson.h>
-//#include <MQTT_OTA.hpp>
 #include <DHT.h>
 #include <MqttConnector.h>
 #include "init_mqtt.h"
-#include <Ticker.h>
 #include <Servo.h> 
 Servo myservo;
 
@@ -16,8 +14,6 @@ Servo myservo;
 boolean stateCoffee = false;
 #include "_publish.h"
 #include "_receive.h"
-#include "RunningAverage.h"
-
 const char* MQTT_HOST        = "mqtt.espert.io";
 const char* MQTT_USERNAME    = "";
 const char* MQTT_PASSWORD    = "";
@@ -37,20 +33,9 @@ const char *DEVICE_NAME = "CMMC-ROOM-COFFEE";
 #define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
 DHT dht(DHTPIN, DHTTYPE);
 
-CMMC_Blink blinker;
 CMMC_Interval timer001;
-
 MqttConnector *mqtt;
 
-/* WIFI INFO */
-#ifndef WIFI_SSID
-  #define WIFI_SSID        "ESPERT-3020"
-  #define WIFI_PASSWORD    "espertap"
-#endif
-
-
-Ticker ticker;
-RunningAverage bucket(50);
 
 float t_dht = 0;
 float h_dht = 0;
@@ -87,28 +72,17 @@ void init_hardware()
   myservo.attach(SERVO);
   myservo.write(50);
   pinMode(LED_BUILTIN, OUTPUT);
-  blinker.init();
-  blinker.blink(50, LED_BUILTIN);
+
+
   delay(200);
-  bucket.clear(); // explicitly start cleans
   dht.begin();
 }
 
 void setup()
 {
   init_hardware();
-
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  while(WiFi.status() != WL_CONNECTED) {
-    Serial.printf ("Connecting to %s:%s\r\n", WIFI_SSID, WIFI_PASSWORD);
-    delay(300);
-  }
-
-  Serial.println("WiFi Connected.");
-  delay(50);
-  blinker.detach();
-  digitalWrite(LED_BUILTIN, HIGH);
-
+  CMMC_Manager manager(0, LED_BUILTIN);
+  manager.start();
   init_mqtt();
 }
 
